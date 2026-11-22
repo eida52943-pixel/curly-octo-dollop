@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Clone - Test Runner</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        header {
+            background: #00a884;
+            color: white;
+            padding: 24px;
+        }
+        header h1 { font-size: 1.5rem; font-weight: 600; }
+        header p { opacity: 0.9; margin-top: 4px; }
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #00a884; color: white; }
+        .btn-primary:hover { background: #008f72; }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .stats {
+            display: flex;
+            gap: 24px;
+            padding: 16px 24px;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+        }
+        .stat {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-value { font-size: 1.5rem; font-weight: 700; }
+        .stat-label { font-size: 0.8rem; color: #666; text-transform: uppercase; }
+        .stat.passed .stat-value { color: #00a884; }
+        .stat.failed .stat-value { color: #e74c3c; }
+        .test-suite {
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+        }
+        .test-suite:last-child { border-bottom: none; }
+        .suite-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            cursor: pointer;
+        }
+        .suite-title { font-weight: 600; font-size: 1rem; }
+        .suite-meta { color: #666; font-size: 0.85rem; }
+        .suite-toggle { transition: transform 0.2s; }
+        .suite-collapsed .suite-toggle { transform: rotate(-90deg); }
+        .test-list { padding-left: 16px; }
+        .suite-collapsed .test-list { display: none; }
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            font-size: 0.9rem;
+        }
+        .test-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .test-status.passed { background: #00a884; }
+        .test-status.failed { background: #e74c3c; }
+        .test-status.pending { background: #f39c12; }
+        .test-name { flex: 1; }
+        .test-error {
+            margin-top: 4px;
+            padding: 8px 12px;
+            background: #fff5f5;
+            border: 1px solid #fecaca;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #c53030;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            padding: 16px 24px;
+            border-bottom: 1px solid #eee;
+        }
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .filter-btn.active { background: #00a884; color: white; border-color: #00a884; }
+        .filter-btn:hover:not(.active) { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>WhatsApp Clone - Test Suite</h1>
+            <p>Core messaging flows & component tests</p>
+        </header>
+
+        <div class="toolbar">
+            <button class="btn btn-primary" id="runAllBtn">Run All Tests</button>
+            <button class="btn btn-secondary" id="runMessagingBtn">Messaging Flows</button>
+            <button class="btn btn-secondary" id="runComponentBtn">Components</button>
+            <button class="btn btn-danger" id="clearBtn">Clear Results</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat passed">
+                <span class="stat-value" id="passedCount">0</span>
+                <span class="stat-label">Passed</span>
+            </div>
+            <div class="stat failed">
+                <span class="stat-value" id="failedCount">0</span>
+                <span class="stat-label">Failed</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="totalCount">0</span>
+                <span class="stat-label">Total</span>
+            </div>
+            <div class="stat">
+                <span class="stat-value" id="duration">0ms</span>
+                <span class="stat-label">Duration</span>
+            </div>
+        </div>
+
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="passed">Passed</button>
+            <button class="filter-btn" data-filter="failed">Failed</button>
+        </div>
+
+        <div id="testResults"></div>
+    </div>
+
+    <script type="module">
+        import { runner as messagingRunner } from './js/tests/messaging-flows.test.js';
+        import { runner as componentRunner } from './js/tests/components.test.js';
+
+        const resultsContainer = document.getElementById('testResults');
+        const passedCount = document.getElementById('passedCount');
+        const failedCount = document.getElementById('failedCount');
+        const totalCount = document.getElementById('totalCount');
+        const durationEl = document.getElementById('duration');
+
+        let currentResults = [];
+
+        function renderResults(results, filter = 'all') {
+            const suites = {};
+
+            results.forEach(r => {
+                const suiteName = r.name.split(' ')[0] + ' ' + r.name.split(' ')[1];
+                if (!suites[suiteName]) suites[suiteName] = [];
+                suites[suiteName].push(r);
+            });
+
+            let html = '';
+            for (const [suiteName, tests] of Object.entries(suites)) {
+                const passed = tests.filter(t => t.passed).length;
+                const failed = tests.filter(t => !t.passed).length;
+                const total = tests.length;
+
+                const filteredTests = tests.filter(t => {
+                    if (filter === 'all') return true;
+                    if (filter === 'passed') return t.passed;
+                    if (filter === 'failed') return !t.passed;
+                    return true;
+                });
+
+                if (filteredTests.length === 0) continue;
+
+                html += `
+                    <div class="test-suite ${filteredTests.length !== tests.length ? 'suite-collapsed' : ''}">
+                        <div class="suite-header" onclick="this.parentElement.classList.toggle('suite-collapsed')">
+                            <span class="suite-title">${suiteName}</span>
+                            <span class="suite-meta">${passed}/${total} passed</span>
+                            <svg class="suite-toggle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </div>
+                        <div class="test-list">
+                `;
+
+                filteredTests.forEach(test => {
+                    html += `
+                        <div class="test-item">
+                            <div class="test-status ${test.passed ? 'passed' : 'failed'}"></div>
+                            <span class="test-name">${test.name}</span>
+                        </div>
+                    `;
+                    if (!test.passed && test.error) {
+                        html += `<div class="test-error">${escapeHtml(test.error)}</div>`;
+                    }
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            resultsContainer.innerHTML = html || '<p style="padding: 24px; text-align: center; color: #666;">No tests match the current filter</p>';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateStats(results) {
+            const passed = results.filter(r => r.passed).length;
+            const failed = results.filter(r => !r.passed).length;
+            passedCount.textContent = passed;
+            failedCount.textContent = failed;
+            totalCount.textContent = results.length;
+        }
+
+        async function runTests(runner, label) {
+            const start = performance.now();
+            const results = await runner.run();
+            const duration = Math.round(performance.now() - start);
+
+            currentResults = results.results;
+            updateStats(currentResults);
+            durationEl.textContent = `${duration}ms`;
+            renderResults(currentResults);
+
+            console.log(`\n${label} complete: ${results.passed} passed, ${results.failed} failed`);
+        }
+
+        // Event listeners
+        document.getElementById('runAllBtn').addEventListener('click', async () => {
+            await runTests(messagingRunner, 'Messaging Flows');
+            await runTests(componentRunner, 'Components');
+        });
+
+        document.getElementById('runMessagingBtn').addEventListener('click', async () => {
+            await runTests(messagingRunner, 'Messaging Flows');
+        });
+
+        document.getElementById('runComponentBtn').addEventListener('click', async () => {
+            await runTests(componentRunner, 'Components');
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            currentResults = [];
+            updateStats([]);
+            durationEl.textContent = '0ms';
+            resultsContainer.innerHTML = '';
+        });
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderResults(currentResults, btn.dataset.filter);
+            });
+        });
+    </script>
+</body>
+</html>
